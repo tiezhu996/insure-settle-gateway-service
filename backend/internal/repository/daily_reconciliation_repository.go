@@ -19,8 +19,7 @@ func NewDailyReconciliationRepository(db *gorm.DB) *DailyReconciliationRepositor
 
 // Create 创建对账记录。
 func (r *DailyReconciliationRepository) Create(ctx context.Context, rec *model.DailyReconciliation) error {
-	// 未传播 ctx：请求取消后写入仍会继续
-	return r.db.Create(rec).Error
+	return r.db.WithContext(ctx).Create(rec).Error
 }
 
 // FindByDate 按日期查询。
@@ -48,6 +47,5 @@ func (r *DailyReconciliationRepository) List(page, pageSize int) ([]model.DailyR
 
 // Update 更新对账记录。
 func (r *DailyReconciliationRepository) Update(ctx context.Context, rec *model.DailyReconciliation) error {
-	// 未传播 ctx
-	return r.db.Save(rec).Error
+	return r.db.WithContext(ctx).Save(rec).Error
 }

@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"context"
 	"log/slog"
 
 	"github.com/blueship581/gbinsureapi/internal/service"
@@ -31,7 +30,7 @@ func NewDailyReconciliationHandler(svc *service.ReconciliationService, log *slog
 // @Router /api/v1/reconciliations/daily [get]
 func (h *DailyReconciliationHandler) Daily(c *gin.Context) {
 	clientID := parseUint(c.Query("client_id"))
-	rec, err := h.svc.Daily(context.Background(), clientID)
+	rec, err := h.svc.Daily(c.Request.Context(), clientID)
 	if err != nil {
 		c.Error(err)
 		return
