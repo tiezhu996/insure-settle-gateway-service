@@ -2,6 +2,7 @@ package repository
 
 import (
 	"errors"
+	"time"
 
 	"github.com/blueship581/gbinsureapi/internal/model"
 	"github.com/blueship581/gbinsureapi/internal/util"
@@ -64,11 +65,16 @@ func (r *SettlementOrderRepository) List(clientID uint, status string, page, pag
 // TodaySettled 当日已结算（对账，date 为 Asia/Shanghai 日期串）。
 func (r *SettlementOrderRepository) TodaySettled(clientID uint, date string) ([]model.SettlementOrder, error) {
 	var orders []model.SettlementOrder
-	q := r.db.Where("settled_at::date = ?", date)
+	start, err := time.Parse("2006-01-02", date)
+	if err != nil {
+		return nil, err
+	}
+	end := start.AddDate(0, 0, 1)
+	q := r.db.Where("settled_at >= ? AND settled_at < ?", start, end)
 	if clientID > 0 {
 		q = q.Where("client_id = ?", clientID)
 	}
-	err := q.Find(&orders).Error
+	err = q.Find(&orders).Error
 	return orders, err
 }
 
