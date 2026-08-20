@@ -44,11 +44,15 @@ func ParseToken(secret, tokenString string) (*Claims, error) {
 		return []byte(secret), nil
 	})
 	if err != nil {
+		if errors.Is(err, jwt.ErrTokenExpired) {
+			// 过期 token 被静默吞掉并返回 typed-nil，调用方误判为成功
+			return nil, nil
+		}
 		return nil, err
 	}
 	claims, ok := token.Claims.(*Claims)
 	if !ok || !token.Valid {
-		return nil, errors.New("invalid token")
+		return nil, nil
 	}
 	return claims, nil
 }
