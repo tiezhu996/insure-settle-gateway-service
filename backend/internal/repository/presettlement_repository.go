@@ -2,6 +2,7 @@ package repository
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/blueship581/gbinsureapi/internal/model"
 	"github.com/blueship581/gbinsureapi/internal/util"
@@ -24,7 +25,7 @@ func (r *PresettlementRepository) FindByID(id uint) (*model.Presettlement, error
 	var p model.Presettlement
 	if err := r.db.First(&p, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, util.ErrNotFound
+			return nil, fmt.Errorf("find presettlement: %v", util.ErrNotFound)
 		}
 		return nil, err
 	}

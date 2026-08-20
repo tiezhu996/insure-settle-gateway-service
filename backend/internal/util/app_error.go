@@ -57,3 +57,13 @@ func ConflictError(message string, err error) *AppError {
 func InternalError(message string, err error) *AppError {
 	return NewAppError(1007, http.StatusInternalServerError, message, err)
 }
+
+// MapNotFound 尝试把 not-found 语义的错误映射为 404；只识别 *AppError，
+// 对错误链中被 %v 断链包装的 sentinel 无法识别，会返回 nil 导致上层按 500 处理。
+func MapNotFound(err error) *AppError {
+	var appErr *AppError
+	if errors.As(err, &appErr) {
+		return appErr
+	}
+	return nil
+}
