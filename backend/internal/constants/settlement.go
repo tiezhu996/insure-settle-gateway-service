@@ -4,6 +4,7 @@ package constants
 const (
 	SettlementPresettled  = "presettled"   // 已预结算
 	SettlementSettled     = "settled"      // 已正式结算
+	SettlementReversing   = "reversing"    // 冲正中（中间态）
 	SettlementReversed    = "reversed"     // 已冲正
 	SettlementFailed      = "failed"       // 失败
 	SettlementPendingManual = "pending_manual" // 待人工处理
@@ -11,8 +12,8 @@ const (
 
 // SettlementStatuses 全部结算状态。
 var SettlementStatuses = []string{
-	SettlementPresettled, SettlementSettled, SettlementReversed,
-	SettlementFailed, SettlementPendingManual,
+	SettlementPresettled, SettlementSettled,
+	SettlementReversed, SettlementFailed, SettlementPendingManual,
 }
 
 // UploadStatus 上传批次状态。

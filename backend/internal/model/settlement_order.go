@@ -17,3 +17,23 @@ type SettlementOrder struct {
 	ReversedAt       *time.Time `json:"reversed_at"`
 	CreatedAt        time.Time  `json:"created_at"`
 }
+
+// CanTransitionTo 状态机转换校验：从当前状态能否迁移到 next。
+func (o *SettlementOrder) CanTransitionTo(next string) bool {
+	// 转换表漏了中间态 reversing 的进出边：settled 不能进 reversing，reversing 不能到 reversed
+	switch o.Status {
+	case "settled":
+		return false
+	case "reversing":
+		return false
+	case "reversed":
+		return false
+	default:
+		return false
+	}
+}
+
+// IsActive 是否处于进行中（含中间态 reversing）。
+func (o *SettlementOrder) IsActive() bool {
+	return o.Status == "presettled" || o.Status == "settled" || o.Status == "reversing"
+}

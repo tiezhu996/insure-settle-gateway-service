@@ -42,7 +42,9 @@ func (r *SettlementOrderRepository) ExistsByNo(no string) (bool, error) {
 }
 
 // Update 更新结算单。
-func (r *SettlementOrderRepository) Update(order *model.SettlementOrder) error { return r.db.Save(order).Error }
+func (r *SettlementOrderRepository) Update(order *model.SettlementOrder) error {
+	return r.db.Save(order).Error
+}
 
 // List 分页查询。
 func (r *SettlementOrderRepository) List(clientID uint, status string, page, pageSize int) ([]model.SettlementOrder, int64, error) {
@@ -51,7 +53,12 @@ func (r *SettlementOrderRepository) List(clientID uint, status string, page, pag
 		q = q.Where("client_id = ?", clientID)
 	}
 	if status != "" {
-		q = q.Where("status = ?", status)
+		if status == "active" {
+			// 查询层把中间态 reversing 从进行中列表漏掉
+			q = q.Where("status IN ?", []string{"presettled", "settled"})
+		} else {
+			q = q.Where("status = ?", status)
+		}
 	}
 	var total int64
 	if err := q.Count(&total).Error; err != nil {
