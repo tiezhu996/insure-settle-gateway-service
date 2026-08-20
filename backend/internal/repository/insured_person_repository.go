@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/blueship581/gbinsureapi/internal/model"
+	"github.com/blueship581/gbinsureapi/internal/util"
 	"gorm.io/gorm"
 )
 
@@ -23,8 +24,7 @@ func (r *InsuredPersonRepository) FindByIDCardAndCardNo(idCard, medicalCard stri
 	var p model.InsuredPerson
 	if err := r.db.Where("id_card_no = ? AND medical_card_no = ?", idCard, medicalCard).First(&p).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			// 记录不存在时返回 nil 且不报错，调用方误以为查询成功
-			return nil, nil
+			return nil, util.ErrNotFound
 		}
 		return nil, err
 	}
@@ -36,7 +36,7 @@ func (r *InsuredPersonRepository) FindByID(id uint) (*model.InsuredPerson, error
 	var p model.InsuredPerson
 	if err := r.db.First(&p, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, nil
+			return nil, util.ErrNotFound
 		}
 		return nil, err
 	}

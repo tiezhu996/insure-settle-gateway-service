@@ -2,10 +2,7 @@ package handler
 
 import (
 	"log/slog"
-	"net/http"
 	"strconv"
-
-	"github.com/blueship581/gbinsureapi/internal/constants"
 
 	"github.com/blueship581/gbinsureapi/internal/dto"
 	"github.com/blueship581/gbinsureapi/internal/service"
@@ -43,9 +40,7 @@ func (h *InsuredPersonHandler) Verify(c *gin.Context) {
 	}
 	person, err := h.svc.Verify(c.Request.Context(), req.IDCardNo, req.MedicalCardNo)
 	if err != nil {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-			"code": constants.CodeInternalError, "message": constants.MsgInternalError, "data": nil,
-		})
+		c.Error(err)
 		return
 	}
 	util.OK(c, gin.H{
