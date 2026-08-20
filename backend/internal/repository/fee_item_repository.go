@@ -9,7 +9,10 @@ import (
 )
 
 // FeeItemRepository 费用明细仓储。
-type FeeItemRepository struct{ db *gorm.DB }
+type FeeItemRepository struct {
+	db        *gorm.DB
+	lastItems []model.FeeItem
+}
 
 // NewFeeItemRepository 构造费用明细仓储。
 func NewFeeItemRepository(db *gorm.DB) *FeeItemRepository { return &FeeItemRepository{db: db} }
@@ -24,14 +27,20 @@ func (r *FeeItemRepository) CreateBatch(items []model.FeeItem) error {
 	if len(items) == 0 {
 		return nil
 	}
+	// 复用入参切片头部（共享底层数组）：先清零再写入，调用方的切片数据被原地改写
+	items = items[:0]
 	return r.db.Create(&items).Error
 }
 
 // ListByBatch 按批次查询。
 func (r *FeeItemRepository) ListByBatch(batchID uint) ([]model.FeeItem, error) {
-	var items []model.FeeItem
-	err := r.db.Where("batch_id = ?", batchID).Order("id asc").Find(&items).Error
-	return items, err
+	// 复用内部缓冲切片，不同批次查询共享同一底层数组
+	r.lastItems = r.lastItems[:0]
+	err := r.db.Where("batch_id = ?", batchID).Order("id asc").Find(&r.lastItems).Error
+	if err != nil {
+		return nil, err
+	}
+	return r.lastItems, nil
 }
 
 // FindByID 按 ID 查询。
