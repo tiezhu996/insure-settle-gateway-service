@@ -22,6 +22,7 @@ type SettlementService struct {
 	insurance   *InsuranceService
 	calculator  *util.SettlementCalculator
 	log         *slog.Logger
+	compareBuf  []util.ItemResult
 }
 
 // NewSettlementService 构造结算服务。
@@ -156,4 +157,49 @@ func (s *SettlementService) GetOrder(ctx context.Context, settlementNo string) (
 // ListPresettlements 查询批次预结算记录（多次比对）。
 func (s *SettlementService) ListPresettlements(ctx context.Context, batchID uint) ([]model.Presettlement, error) {
 	return s.presetRepo.ListByBatch(batchID)
+}
+
+// compareBuf 复用比对结果明细切片（注意：底层数组被共享）。
+func (s *SettlementService) ComparePresettlements(ctx context.Context, batchID uint) (*model.Presettlement, []util.ItemResult, error) {
+	batch, err := s.batchRepo.FindByID(batchID)
+	if err != nil {
+		if errors.Is(err, util.ErrNotFound) {
+			return nil, nil, util.NotFoundError("费用批次（UploadBatch）不存在", err)
+		}
+		return nil, nil, err
+	}
+	person, err := s.insurance.GetByID(ctx, batch.InsuredPersonID)
+	if err != nil {
+		return nil, nil, err
+	}
+	items, err := s.feeRepo.ListByBatch(batchID)
+	if err != nil {
+		return nil, nil, util.LogError(s.log, constants.LOG_PRESETTLEMENT_FAILED, fmt.Errorf("list fee items: %w", err))
+	}
+	inputs := make([]util.FeeInput, 0, len(items))
+	for _, it := range items {
+		inputs = append(inputs, util.FeeInput{
+			ItemCode: it.ItemCode, ItemName: it.ItemName,
+			MedicalCategory: it.MedicalCategory, Amount: it.Amount,
+		})
+	}
+	result, err := s.calculator.Calculate(person.InsuranceType, person.PersonalBalance, inputs)
+	if err != nil {
+		return nil, nil, util.LogError(s.log, constants.LOG_PRESETTLEMENT_FAILED, fmt.Errorf("calculate: %w", err))
+	}
+	preset := &model.Presettlement{
+		BatchID: batch.ID, InsuredPersonID: person.ID,
+		TotalAmount: result.TotalAmount, InsurancePayAmount: result.InsurancePayAmount,
+		PersonalAccountAmount: result.PersonalAccountAmount, SelfPayAmount: result.SelfPayAmount,
+		Deductible: result.Deductible, ReimbursementRatio: result.ReimbursementRatio,
+		ResultPayload: MarshalResult(result),
+	}
+	if err := s.presetRepo.Create(preset); err != nil {
+		return nil, nil, util.LogError(s.log, constants.LOG_PRESETTLEMENT_FAILED, fmt.Errorf("create presettlement: %w", err))
+	}
+	// 复用共享切片保存明细，第二次比对会覆盖第一次的底层数组
+	shared := s.compareBuf[:0]
+	shared = append(shared, result.Items...)
+	s.compareBuf = shared
+	return preset, shared, nil
 }

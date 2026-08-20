@@ -7,7 +7,10 @@ import (
 )
 
 // SettlementCalculator 医保结算计算：起付线、报销比例、个人账户支付、自费金额。
-type SettlementCalculator struct{}
+type SettlementCalculator struct {
+	// buf 复用明细结果切片，避免多次计算重复分配（注意：底层数组被共享）
+	buf []ItemResult
+}
 
 // NewSettlementCalculator 构造计算器。
 func NewSettlementCalculator() *SettlementCalculator { return &SettlementCalculator{} }
@@ -62,8 +65,8 @@ func (c *SettlementCalculator) Calculate(insuranceType string, personalBalance f
 	policy := c.GetPolicy(insuranceType)
 	result := &CalculateResult{
 		Deductible: policy.Deductible, ReimbursementRatio: policy.ReimbursementRate,
-		Items: make([]ItemResult, 0, len(items)),
 	}
+	itemsOut := c.buf[:0]
 	for _, it := range items {
 		base := 0.0
 		switch it.MedicalCategory {
@@ -78,11 +81,13 @@ func (c *SettlementCalculator) Calculate(insuranceType string, personalBalance f
 		}
 		result.TotalAmount += it.Amount
 		result.BaseAmount += base
-		result.Items = append(result.Items, ItemResult{
+		itemsOut = append(itemsOut, ItemResult{
 			ItemCode: it.ItemCode, ItemName: it.ItemName, MedicalCategory: it.MedicalCategory,
 			Amount: it.Amount, BaseAmount: base,
 		})
 	}
+	result.Items = itemsOut
+	c.buf = itemsOut
 	reimburseBase := result.BaseAmount - policy.Deductible
 	if reimburseBase < 0 {
 		reimburseBase = 0
@@ -95,14 +100,12 @@ func (c *SettlementCalculator) Calculate(insuranceType string, personalBalance f
 	if personal > policy.PersonalCap {
 		personal = policy.PersonalCap
 	}
-	// 个人账户支付不能超过统筹支付
 	if personal > insurancePay {
 		personal = insurancePay
 	}
 	result.InsurancePayAmount = round2(insurancePay)
 	result.PersonalAccountAmount = round2(personal)
 	result.SelfPayAmount = round2(result.TotalAmount - insurancePay)
-	// 回填单条明细的统筹支付与自费
 	ratio := 1.0
 	if result.BaseAmount > 0 {
 		ratio = insurancePay / result.BaseAmount
