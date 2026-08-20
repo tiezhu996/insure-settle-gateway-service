@@ -57,7 +57,7 @@ func (r *SettlementOrderRepository) List(clientID uint, status string, page, pag
 		return nil, 0, err
 	}
 	var orders []model.SettlementOrder
-	err := r.db.Where("client_id = ?", clientID).Order("id desc").Offset((page - 1) * pageSize).Limit(pageSize).Find(&orders).Error
+	err := q.Order("id desc").Offset((page - 1) * pageSize).Limit(pageSize).Find(&orders).Error
 	return orders, total, err
 }
 

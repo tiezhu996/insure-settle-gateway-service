@@ -82,7 +82,7 @@ func (r *UploadBatchRepository) ListByClient(clientID uint, page, pageSize int) 
 		return nil, 0, err
 	}
 	var batches []model.UploadBatch
-	err := r.db.Where("client_id = ?", clientID).Order("id desc").Offset((page - 1) * pageSize).Limit(pageSize).Find(&batches).Error
+	err := q.Order("id desc").Offset((page - 1) * pageSize).Limit(pageSize).Find(&batches).Error
 	return batches, total, err
 }
 
