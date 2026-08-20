@@ -37,7 +37,7 @@ func New(cfg config.Config, log *slog.Logger, h Handlers, clientSvc *service.Api
 	r.Use(gin.Recovery())
 	r.Use(middleware.ErrorHandler(log))
 	r.Use(middleware.RequestID())
-	r.Use(middleware.RequestLogger(log))
+	r.Use(middleware.RequestLogger(log, limiter))
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     allowOrigins,
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},

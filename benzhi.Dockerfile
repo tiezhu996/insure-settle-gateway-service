@@ -1,5 +1,5 @@
 # 评测用镜像：交付 Dockerfile 固定在仓库根目录，保留完整 Go 工具链。
-FROM golang:1.22
+FROM golang:1.25
 WORKDIR /app
 COPY backend/go.mod backend/go.sum backend/
 WORKDIR /app/backend
