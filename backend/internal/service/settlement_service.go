@@ -22,7 +22,6 @@ type SettlementService struct {
 	insurance   *InsuranceService
 	calculator  *util.SettlementCalculator
 	log         *slog.Logger
-	compareBuf  []util.ItemResult
 }
 
 // NewSettlementService 构造结算服务。
@@ -159,7 +158,7 @@ func (s *SettlementService) ListPresettlements(ctx context.Context, batchID uint
 	return s.presetRepo.ListByBatch(batchID)
 }
 
-// compareBuf 复用比对结果明细切片（注意：底层数组被共享）。
+// ComparePresettlements 计算预结算明细供多次比对：每次返回独立切片，互不覆盖。
 func (s *SettlementService) ComparePresettlements(ctx context.Context, batchID uint) (*model.Presettlement, []util.ItemResult, error) {
 	batch, err := s.batchRepo.FindByID(batchID)
 	if err != nil {
@@ -197,9 +196,5 @@ func (s *SettlementService) ComparePresettlements(ctx context.Context, batchID u
 	if err := s.presetRepo.Create(preset); err != nil {
 		return nil, nil, util.LogError(s.log, constants.LOG_PRESETTLEMENT_FAILED, fmt.Errorf("create presettlement: %w", err))
 	}
-	// 复用共享切片保存明细，第二次比对会覆盖第一次的底层数组
-	shared := s.compareBuf[:0]
-	shared = append(shared, result.Items...)
-	s.compareBuf = shared
-	return preset, shared, nil
+	return preset, result.Items, nil
 }

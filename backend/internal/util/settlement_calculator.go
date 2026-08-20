@@ -7,10 +7,7 @@ import (
 )
 
 // SettlementCalculator 医保结算计算：起付线、报销比例、个人账户支付、自费金额。
-type SettlementCalculator struct {
-	// buf 复用明细结果切片，避免多次计算重复分配（注意：底层数组被共享）
-	buf []ItemResult
-}
+type SettlementCalculator struct{}
 
 // NewSettlementCalculator 构造计算器。
 func NewSettlementCalculator() *SettlementCalculator { return &SettlementCalculator{} }
@@ -66,7 +63,7 @@ func (c *SettlementCalculator) Calculate(insuranceType string, personalBalance f
 	result := &CalculateResult{
 		Deductible: policy.Deductible, ReimbursementRatio: policy.ReimbursementRate,
 	}
-	itemsOut := c.buf[:0]
+	itemsOut := make([]ItemResult, 0, len(items))
 	for _, it := range items {
 		base := 0.0
 		switch it.MedicalCategory {
@@ -87,7 +84,6 @@ func (c *SettlementCalculator) Calculate(insuranceType string, personalBalance f
 		})
 	}
 	result.Items = itemsOut
-	c.buf = itemsOut
 	reimburseBase := result.BaseAmount - policy.Deductible
 	if reimburseBase < 0 {
 		reimburseBase = 0
