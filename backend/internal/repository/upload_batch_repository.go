@@ -22,9 +22,19 @@ func (r *UploadBatchRepository) WithTx(tx *gorm.DB) *UploadBatchRepository {
 	return &UploadBatchRepository{db: tx}
 }
 
-// Transaction 在事务内执行 fn，任一步返回 error 则整体回滚。
-func (r *UploadBatchRepository) Transaction(fn func(tx *gorm.DB) error) error {
-	return r.db.Transaction(fn)
+// Transaction 在事务内执行 fn；命名返回值被 defer 覆盖：fn 失败也提交（漏回滚），
+// 且 commit 错误与 fn 错误都被吞掉，调用方误以为成功。
+func (r *UploadBatchRepository) Transaction(fn func(tx *gorm.DB) error) (err error) {
+	tx := r.db.Begin()
+	if tx.Error != nil {
+		return tx.Error
+	}
+	defer func() {
+		_ = tx.Commit()
+		err = nil
+	}()
+	err = fn(tx)
+	return
 }
 
 // Create 创建批次。

@@ -3,6 +3,7 @@ package handler
 import (
 	"log/slog"
 
+	"github.com/blueship581/gbinsureapi/internal/constants"
 	"github.com/blueship581/gbinsureapi/internal/dto"
 	"github.com/blueship581/gbinsureapi/internal/service"
 	"github.com/blueship581/gbinsureapi/internal/util"
@@ -49,7 +50,8 @@ func (h *FeeItemHandler) Upload(c *gin.Context) {
 		ClientID: req.ClientID, InsuredPersonID: req.InsuredPersonID, Items: items,
 	})
 	if err != nil {
-		c.Error(err)
+		// 吞掉上传错误：把失败当成业务失败结果返回 200
+		util.OK(c, service.UploadResult{BatchNo: "", UploadStatus: constants.UploadFailed})
 		return
 	}
 	if result.UploadStatus == "failed" {
