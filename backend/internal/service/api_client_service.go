@@ -96,11 +96,14 @@ func (s *ApiClientService) UpdateStatus(ctx context.Context, id uint, status str
 	client, err := s.repo.FindByID(id)
 	if err != nil {
 		if errors.Is(err, util.ErrNotFound) {
-			return util.InternalError("调用方（ApiClient）不存在", err)
+			return util.NotFoundError("调用方（ApiClient）不存在", err)
 		}
 		return util.LogError(s.log, constants.LOG_CLIENT_STATUS_CHANGED, fmt.Errorf("find client: %w", err))
 	}
 	if err := s.repo.UpdateStatus(client.ID, status); err != nil {
+		if errors.Is(err, util.ErrNotFound) {
+			return util.NotFoundError("调用方（ApiClient）不存在", err)
+		}
 		return util.LogError(s.log, constants.LOG_CLIENT_STATUS_CHANGED, fmt.Errorf("update status: %w", err))
 	}
 	s.log.InfoContext(ctx, constants.LOG_CLIENT_STATUS_CHANGED, "client_id", id, "status", status)

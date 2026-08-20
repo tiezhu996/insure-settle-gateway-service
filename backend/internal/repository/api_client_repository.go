@@ -23,7 +23,7 @@ func (r *ApiClientRepository) FindByID(id uint) (*model.ApiClient, error) {
 	var client model.ApiClient
 	if err := r.db.First(&client, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, fmt.Errorf("find client: %v", util.ErrNotFound)
+			return nil, fmt.Errorf("find client: %w", util.ErrNotFound)
 		}
 		return nil, err
 	}
@@ -46,8 +46,14 @@ func (r *ApiClientRepository) Update(client *model.ApiClient) error { return r.d
 
 // UpdateStatus 更新状态。
 func (r *ApiClientRepository) UpdateStatus(id uint, status string) error {
-	// 更新 0 行（调用方不存在）也返回成功
-	return r.db.Model(&model.ApiClient{}).Where("id = ?", id).Update("status", status).Error
+	res := r.db.Model(&model.ApiClient{}).Where("id = ?", id).Update("status", status)
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		return fmt.Errorf("update status: %w", util.ErrNotFound)
+	}
+	return nil
 }
 
 // Count 统计数量。

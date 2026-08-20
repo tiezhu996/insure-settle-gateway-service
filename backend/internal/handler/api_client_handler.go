@@ -3,7 +3,6 @@ package handler
 import (
 	"errors"
 	"log/slog"
-	"net/http"
 
 	"github.com/blueship581/gbinsureapi/internal/constants"
 	"github.com/blueship581/gbinsureapi/internal/dto"
@@ -84,9 +83,7 @@ func (h *ApiClientHandler) UpdateStatus(c *gin.Context) {
 		return
 	}
 	if err := h.svc.UpdateStatus(c.Request.Context(), id, req.Status); err != nil {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-			"code": constants.CodeInternalError, "message": constants.MsgInternalError, "data": nil,
-		})
+		c.Error(err)
 		return
 	}
 	util.OK(c, gin.H{"client_id": id, "status": req.Status})
