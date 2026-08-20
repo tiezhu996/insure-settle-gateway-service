@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"errors"
 
 	"github.com/blueship581/gbinsureapi/internal/model"
@@ -17,14 +18,15 @@ func NewDailyReconciliationRepository(db *gorm.DB) *DailyReconciliationRepositor
 }
 
 // Create 创建对账记录。
-func (r *DailyReconciliationRepository) Create(rec *model.DailyReconciliation) error {
+func (r *DailyReconciliationRepository) Create(ctx context.Context, rec *model.DailyReconciliation) error {
+	// 未传播 ctx：请求取消后写入仍会继续
 	return r.db.Create(rec).Error
 }
 
 // FindByDate 按日期查询。
-func (r *DailyReconciliationRepository) FindByDate(date string) (*model.DailyReconciliation, error) {
+func (r *DailyReconciliationRepository) FindByDate(ctx context.Context, date string) (*model.DailyReconciliation, error) {
 	var rec model.DailyReconciliation
-	if err := r.db.Where("reconcile_date = ?", date).First(&rec).Error; err != nil {
+	if err := r.db.WithContext(ctx).Where("reconcile_date = ?", date).First(&rec).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, util.ErrNotFound
 		}
@@ -45,6 +47,7 @@ func (r *DailyReconciliationRepository) List(page, pageSize int) ([]model.DailyR
 }
 
 // Update 更新对账记录。
-func (r *DailyReconciliationRepository) Update(rec *model.DailyReconciliation) error {
+func (r *DailyReconciliationRepository) Update(ctx context.Context, rec *model.DailyReconciliation) error {
+	// 未传播 ctx
 	return r.db.Save(rec).Error
 }
