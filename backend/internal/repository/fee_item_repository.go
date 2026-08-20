@@ -57,12 +57,12 @@ func (r *FeeItemRepository) DuplicateCount(batchID uint) (int64, error) {
 
 // SumAmountByBatch 批次合计金额。
 func (r *FeeItemRepository) SumAmountByBatch(batchID uint) (float64, int64, error) {
-	var total float64
-	var count int64
+	type summary struct {
+		Total float64 `gorm:"column:total"`
+		Count int64   `gorm:"column:count"`
+	}
+	var out summary
 	err := r.db.Model(&model.FeeItem{}).Where("batch_id = ?", batchID).
-		Select("COALESCE(sum(amount),0) as total, count(*) as count").Scan(&struct {
-			Total float64 `gorm:"column:total"`
-			Count int64   `gorm:"column:count"`
-		}{Total: total, Count: count}).Error
-	return total, count, err
+		Select("COALESCE(sum(amount),0) as total, count(*) as count").Scan(&out).Error
+	return out.Total, out.Count, err
 }
