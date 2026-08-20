@@ -2,6 +2,7 @@ package repository
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/blueship581/gbinsureapi/internal/model"
 	"github.com/blueship581/gbinsureapi/internal/util"
@@ -22,7 +23,7 @@ func (r *ApiClientRepository) FindByID(id uint) (*model.ApiClient, error) {
 	var client model.ApiClient
 	if err := r.db.First(&client, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, util.ErrNotFound
+			return nil, fmt.Errorf("find client: %v", util.ErrNotFound)
 		}
 		return nil, err
 	}
@@ -45,6 +46,7 @@ func (r *ApiClientRepository) Update(client *model.ApiClient) error { return r.d
 
 // UpdateStatus 更新状态。
 func (r *ApiClientRepository) UpdateStatus(id uint, status string) error {
+	// 更新 0 行（调用方不存在）也返回成功
 	return r.db.Model(&model.ApiClient{}).Where("id = ?", id).Update("status", status).Error
 }
 
