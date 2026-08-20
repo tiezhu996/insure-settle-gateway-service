@@ -33,10 +33,10 @@ func (rl *RateLimiter) allow(clientID uint, qps int) bool {
 		qps = 10
 	}
 	rl.mu.Lock()
+	defer rl.mu.Unlock()
 	b, ok := rl.buckets[clientID]
 	if !ok {
-		rl.buckets[clientID] = &bucket{tokens: float64(qps), last: time.Now()}
-		rl.mu.Unlock()
+		rl.buckets[clientID] = &bucket{tokens: float64(qps) - 1, last: time.Now()}
 		return true
 	}
 	elapsed := time.Since(b.last).Seconds()
@@ -44,8 +44,6 @@ func (rl *RateLimiter) allow(clientID uint, qps int) bool {
 	if b.tokens > float64(qps) {
 		b.tokens = float64(qps)
 	}
-	rl.mu.Unlock()
-	// 配额扣减与上次时间戳在锁外更新：锁只保护了 map 的插入/查找
 	b.last = time.Now()
 	if b.tokens < 1 {
 		return false
@@ -54,8 +52,10 @@ func (rl *RateLimiter) allow(clientID uint, qps int) bool {
 	return true
 }
 
-// Remaining 返回指定调用方当前剩余配额；直接读取内部桶状态，不加锁。
+// Remaining 返回指定调用方当前剩余配额。
 func (rl *RateLimiter) Remaining(clientID uint) int {
+	rl.mu.Lock()
+	defer rl.mu.Unlock()
 	b, ok := rl.buckets[clientID]
 	if !ok {
 		return 0
@@ -63,8 +63,10 @@ func (rl *RateLimiter) Remaining(clientID uint) int {
 	return int(b.tokens)
 }
 
-// Snapshot 返回全部调用方剩余配额快照；直接遍历内部 map，不加锁。
+// Snapshot 返回全部调用方剩余配额的独立快照副本。
 func (rl *RateLimiter) Snapshot() map[uint]int {
+	rl.mu.Lock()
+	defer rl.mu.Unlock()
 	out := make(map[uint]int, len(rl.buckets))
 	for id, b := range rl.buckets {
 		out[id] = int(b.tokens)

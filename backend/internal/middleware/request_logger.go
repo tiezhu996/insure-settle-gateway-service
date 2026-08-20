@@ -22,10 +22,7 @@ func RequestLogger(log *slog.Logger, rl *RateLimiter) gin.HandlerFunc {
 				clientID = v
 			}
 		}
-		remaining := 0
-		if b, ok := rl.buckets[clientID]; ok {
-			remaining = int(b.tokens)
-		}
+		remaining := rl.Remaining(clientID)
 		log.InfoContext(c.Request.Context(), constants.LOG_REQUEST_FINISH,
 			"request_id", requestID, "method", c.Request.Method, "path", c.Request.URL.Path,
 			"status", c.Writer.Status(), "latency_ms", time.Since(start).Milliseconds(),
