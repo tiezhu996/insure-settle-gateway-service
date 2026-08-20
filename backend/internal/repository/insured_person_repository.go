@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"github.com/blueship581/gbinsureapi/internal/model"
-	"github.com/blueship581/gbinsureapi/internal/util"
 	"gorm.io/gorm"
 )
 
@@ -22,10 +21,10 @@ func (r *InsuredPersonRepository) Create(p *model.InsuredPerson) error { return 
 // FindByIDCardAndCardNo 按身份证号与医保卡号核验。
 func (r *InsuredPersonRepository) FindByIDCardAndCardNo(idCard, medicalCard string) (*model.InsuredPerson, error) {
 	var p model.InsuredPerson
-	err := r.db.Where("id_card_no = ? AND medical_card_no = ?", idCard, medicalCard).First(&p).Error
-	if err != nil {
+	if err := r.db.Where("id_card_no = ? AND medical_card_no = ?", idCard, medicalCard).First(&p).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, util.ErrNotFound
+			// 记录不存在时返回 nil 且不报错，调用方误以为查询成功
+			return nil, nil
 		}
 		return nil, err
 	}
@@ -37,7 +36,7 @@ func (r *InsuredPersonRepository) FindByID(id uint) (*model.InsuredPerson, error
 	var p model.InsuredPerson
 	if err := r.db.First(&p, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, util.ErrNotFound
+			return nil, nil
 		}
 		return nil, err
 	}

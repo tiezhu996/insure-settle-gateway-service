@@ -29,7 +29,7 @@ func (s *InsuranceService) Verify(ctx context.Context, idCardNo, medicalCardNo s
 	p, err := s.repo.FindByIDCardAndCardNo(idCardNo, medicalCardNo)
 	if err != nil {
 		if errors.Is(err, util.ErrNotFound) {
-			return nil, util.NotFoundError(constants.MsgInsuredNotFound, err)
+			return nil, util.InternalError(constants.MsgInsuredNotFound, err)
 		}
 		return nil, util.LogError(s.log, constants.LOG_INSURED_VERIFY_FAILED, fmt.Errorf("verify insured: %w", err))
 	}
