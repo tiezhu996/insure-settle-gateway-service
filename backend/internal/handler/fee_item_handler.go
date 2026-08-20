@@ -50,8 +50,10 @@ func (h *FeeItemHandler) Upload(c *gin.Context) {
 		ClientID: req.ClientID, InsuredPersonID: req.InsuredPersonID, Items: items,
 	})
 	if err != nil {
-		// 吞掉上传错误：把失败当成业务失败结果返回 200
-		util.OK(c, service.UploadResult{BatchNo: "", UploadStatus: constants.UploadFailed})
+		// 上传失败必须把错误透传给 ErrorHandler，避免把失败当成成功结果返回 200，
+		// 导致调用方以为上传成功而批次金额对不上。
+		util.LogError(h.log, constants.LOG_FEE_UPLOAD_FAILED, err)
+		c.Error(util.InternalError(constants.MsgInternalError, err))
 		return
 	}
 	if result.UploadStatus == "failed" {

@@ -120,8 +120,9 @@ func (s *FeeService) Upload(ctx context.Context, input UploadInput) (*UploadResu
 		return nil
 	})
 	if err != nil {
-		// 事务失败也继续返回成功（吞错），批次/明细可能只写了一半
-		s.log.WarnContext(ctx, constants.LOG_FEE_UPLOAD_FAILED, "error", err)
+		// 事务失败：回滚已由 Transaction 处理，这里必须把错误向上抛，
+		// 否则调用方会把"批次/明细只写了一半"当成成功返回。
+		return nil, util.LogError(s.log, constants.LOG_FEE_UPLOAD_FAILED, fmt.Errorf("upload tx: %w", err))
 	}
 	s.log.InfoContext(ctx, constants.LOG_FEE_UPLOAD_VALIDATED, "batch_no", batch.BatchNo, "amount", total)
 	return &UploadResult{
